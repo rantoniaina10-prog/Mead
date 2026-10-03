@@ -55,31 +55,39 @@ let tb='<tr><th>DI</th><th>Brix</th><th>Baumé</th><th>Miel kg/L</th><th>ABV%</t
 for(let s=1;s<=1.1601;s+=0.005){tb+=`<tr><td>${f(s,3)}</td><td>${f((s-1)*220+1.6,1)}</td><td>${f(145-145/s,1)}</td><td>${f((s-1)/0.306,2)}</td><td>${f(131*(s-1),1)}</td></tr>`}$('tb').innerHTML=tb;
 // Lots
 let L=JSON.parse(localStorage.getItem('hyd')||'[]'),cur=null;const sv=()=>{try{localStorage.setItem('hyd',JSON.stringify(L))}catch(e){}};
-function ref(){$('lots').innerHTML=L.map((l,i)=>`<option value="${i}">${l.nom||'Lot '+(i+1)}</option>`).join('')||'<option>Aucun lot</option>';if(L.length){$('lots').value=cur;}}
+function ref(){$('lots').innerHTML=L.map((l,i)=>`<option value="${i}">${l.nom||'Lot '+(i+1)} · début ${l.date||'?'}</option>`).join('')||'<option>Aucun lot</option>';if(L.length){$('lots').value=cur;}}
 function newLot(){L.push({date:new Date().toISOString().slice(0,10),nom:'',vin:'Hydromel',miel:'',og:'',abv:'',fg:'',vol:'',levure:'',kg:'',ph:'',acide:'',temp:'',suivi:[],sout:[]});cur=L.length-1;sv();ref();draw()}
 function delLot(){if(cur==null||!confirm('Supprimer ce lot ?'))return;L.splice(cur,1);cur=L.length?0:null;sv();ref();draw()}
 function load(){cur=+$('lots').value;draw()}
-function set(k,v){L[cur][k]=v;sv();ref();info()}
+function set(k,v){L[cur][k]=v;sv();ref();if(k==='date')draw();else info()}
 function inp(k,lab,t='text'){return `<div><label>${lab}</label><input type="${t}" step="any" value="${L[cur][k]??''}" onchange="set('${k}',this.value)"></div>`}
 function draw(){const b=$('lotbox');if(cur==null||!L[cur]){b.innerHTML='<div class=card>Créez un lot avec « + Nouveau lot ».</div>';return}
-const l=L[cur];b.innerHTML=`<div class=card><h3>1. Cuvée</h3><div class=row>${inp('date','Date','date')}${inp('nom','Nom du fût')}${inp('vin','Type de vin')}${inp('miel','Type de miel')}${inp('og','Densité initiale','number')}${inp('fg','Densité finale','number')}${inp('vol','Volume (L)','number')}${inp('levure','Levure')}</div><div class=res id=inf></div></div>
+const l=L[cur];b.innerHTML=`<div class=card><h3>1. Cuvée</h3><div class=row>${inp('date','Début de fermentation','date')}${inp('nom','Nom du fût')}${inp('vin','Type de vin')}${inp('miel','Type de miel')}${inp('og','Densité initiale','number')}${inp('fg','Densité finale','number')}${inp('vol','Volume (L)','number')}${inp('levure','Levure')}</div><div class=res id=inf></div></div>
 <div class=card><h3>2. Moût</h3><div class=row>${inp('kg','Miel (kg)','number')}${inp('ph','pH (3,6 min.)','number')}${inp('acide','Acide citrique (g)','number')}${inp('temp','Température (°C)','number')}</div></div>
-<div class=card><h3>3. Suivi de fermentation</h3><div class=row><div><label>Date</label><input id=sd type=date value="${new Date().toISOString().slice(0,10)}"></div><div><label>Densité</label><input id=ss type=number step=0.001></div><div><label>pH</label><input id=sp type=number step=0.01></div><div><label>Temp. °C</label><input id=st type=number step=0.1></div></div><label>Ajout</label><input id=sa><button onclick="addS()">Ajouter la mesure</button>
-<div id=chart></div><div class=sc><table><tr><th>Date</th><th>Dens.</th><th>pH</th><th>°C</th><th>Ajout</th><th></th></tr>${l.suivi.map((s,i)=>`<tr><td>${s.d}</td><td>${s.s}</td><td>${s.p}</td><td>${s.t}</td><td>${s.a}</td><td onclick="rmS('suivi',${i})">✕</td></tr>`).join('')}</table></div><div id=al></div></div>
+<div class=card><h3>3. Suivi de fermentation</h3><div class=row><div><label>Date de mesure</label><input id=sd type=date min="${l.date}" value="${l.suivi.length?new Date().toISOString().slice(0,10):l.date}"></div><div><label>Densité</label><input id=ss type=number step=0.001></div><div><label>pH</label><input id=sp type=number step=0.01></div><div><label>Temp. °C</label><input id=st type=number step=0.1></div></div><label>Ajout</label><input id=sa><button onclick="addS()">Ajouter la mesure</button>
+<div id=chart></div><div class=sc><table><tr><th>Jour</th><th>Date</th><th>Dens.</th><th>pH</th><th>°C</th><th>Ajout</th><th></th></tr>${l.suivi.map((s,i)=>`<tr><td>J${dj(s.d)}</td><td>${s.d}</td><td>${s.s}</td><td>${s.p}</td><td>${s.t}</td><td>${s.a}</td><td onclick="rmS('suivi',${i})">✕</td></tr>`).join('')}</table></div><div id=al></div></div>
 <div class=card><h3>4. Soutirages</h3><div class=row><div><label>Date</label><input id=xd type=date value="${new Date().toISOString().slice(0,10)}"></div><div></div><div><label>Fût avant</label><input id=xa></div><div><label>Fût après</label><input id=xb></div></div><button onclick="addX()">Ajouter</button><table>${l.sout.map((s,i)=>`<tr><td>${s.d}</td><td>${s.a}</td><td>${s.b}</td><td onclick="rmS('sout',${i})">✕</td></tr>`).join('')}</table></div>
 <button class=s onclick="exp()">Exporter (JSON)</button>`;info();chart()}
+function dj(d){return Math.round((new Date(d)-new Date(L[cur].date))/864e5)}
 function info(){if(cur==null||!$('inf'))return;const l=L[cur],o=+l.og,g=+l.fg;let h='';if(o&&g&&o>=g){h=`Alcool (131×(DI−DF)) : <b>${f(131*(o-g),1)} %</b> · ${typ(g)}`}else h='<small>Saisir DI et DF pour obtenir l\'alcool.</small>';if(l.vol&&l.kg)h+=`<br>Miel : ${f(l.kg*1000/l.vol,0)} g/L`;$('inf').innerHTML=h}
-function addS(){const l=L[cur];if(!$('ss').value)return;l.suivi.push({d:$('sd').value,s:$('ss').value,p:$('sp').value,t:$('st').value,a:$('sa').value});if(!l.og&&l.suivi.length==1)l.og=$('ss').value;sv();draw()}
+function addS(){const l=L[cur];if(!$('ss').value)return;if(!$('sd').value||$('sd').value<l.date){alert('La date de mesure doit être le '+l.date+' (début de fermentation) ou après.');return}l.suivi.push({d:$('sd').value,s:$('ss').value,p:$('sp').value,t:$('st').value,a:$('sa').value});l.suivi.sort((a,b)=>a.d<b.d?-1:1);if(!l.og)l.og=l.suivi[0].s;sv();draw()}
 function addX(){L[cur].sout.push({d:$('xd').value,a:$('xa').value,b:$('xb').value});sv();draw()}
 function rmS(k,i){L[cur][k].splice(i,1);sv();draw()}
 function chart(){const S=L[cur].suivi.filter(s=>+s.s);let a='';const m=S.length;
-if(m>=1){const w=300,h=120,v=S.map(s=>+s.s),mx=Math.max(...v),mn=Math.min(...v,1),r=(mx-mn)||0.001;
-const p=v.map((y,i)=>`${m>1?10+i*(w-20)/(m-1):w/2},${10+(mx-y)/r*(h-20)}`).join(' ');
-$('chart').innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%"><polyline fill="none" stroke="#b7791f" stroke-width="2" points="${p}"/>${p.split(' ').map(q=>`<circle cx="${q.split(',')[0]}" cy="${q.split(',')[1]}" r="3" fill="#b7791f"/>`).join('')}<text x="2" y="10" font-size="9" fill="gray">${f(mx,3)}</text><text x="2" y="${h-2}" font-size="9" fill="gray">${f(mn,3)}</text></svg>`}
+if(m>=1){const W=330,H=200,ml=44,mr=14,mt=18,mb=38,pw=W-ml-mr,ph=H-mt-mb,st='style="fill:var(--m)"';
+const T=S.map(s=>new Date(s.d).getTime()),v=S.map(s=>+s.s);let t0=T[0],t1=T[m-1];if(t1===t0)t1=t0+864e5;
+let mx=Math.max(...v),mn=Math.min(...v);const pd=(mx-mn)*0.12||0.005;mx+=pd;mn-=pd;
+const X=t=>ml+(t-t0)/(t1-t0)*pw,Y=y=>mt+(mx-y)/(mx-mn)*ph,fd=t=>{const d=new Date(t);return String(d.getUTCDate()).padStart(2,'0')+'/'+String(d.getUTCMonth()+1).padStart(2,'0')};
+let g='';for(let i=0;i<=4;i++){const y=mn+(mx-mn)*i/4,yy=Y(y);g+=`<line x1="${ml}" x2="${W-mr}" y1="${yy}" y2="${yy}" stroke="#bbb" stroke-opacity=".4"/><text x="${ml-4}" y="${yy+3}" text-anchor="end" font-size="9" ${st}>${f(y,3)}</text>`}
+const n=Math.max(1,Math.min(5,Math.round((t1-t0)/864e5)+1));
+for(let i=0;i<n;i++){const t=n==1?t0:t0+(t1-t0)*i/(n-1),xx=X(t);g+=`<line x1="${xx}" x2="${xx}" y1="${mt}" y2="${mt+ph}" stroke="#bbb" stroke-opacity=".25"/><text x="${xx}" y="${mt+ph+13}" text-anchor="middle" font-size="9" ${st}>${fd(t)}</text>`}
+const pts=S.map((s,i)=>X(T[i])+','+Y(v[i])).join(' ');
+const dots=S.map((s,i)=>`<circle cx="${X(T[i])}" cy="${Y(v[i])}" r="3.5" fill="#b7791f"><title>${s.d} (J${dj(s.d)}) : ${s.s}</title></circle>`+(m<=8?`<text x="${X(T[i])}" y="${Y(v[i])-7}" text-anchor="middle" font-size="9" ${st}>${s.s}</text>`:'')).join('');
+$('chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%">${g}<polyline fill="none" stroke="#b7791f" stroke-width="2" points="${pts}"/>${dots}<text x="2" y="10" font-size="10" font-weight="bold" ${st}>Densité</text><text x="${ml+pw/2}" y="${H-4}" text-anchor="middle" font-size="10" font-weight="bold" ${st}>Date</text></svg>`}
 const l=L[cur],z=[];if(l.ph&&+l.ph<3.6)z.push('pH du moût < 3,6 : ajuster (acide).');
 const last=l.suivi[l.suivi.length-1];if(last){if(+last.t&&(+last.t<20||+last.t>25))z.push('Température hors 20–25 °C.');if(+last.p&&(+last.p<3.5||+last.p>4.2))z.push('pH hors 3,5–4,2.')}
 if(m>=3&&S.slice(-3).every(s=>s.s==S[m-1].s))z.push('Densité stable sur 3 mesures : fermentation terminée ou bloquée.');
 $('al').innerHTML=z.map(x=>`<p class=w>⚠ ${x}</p>`).join('')}
 function exp(){const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(L[cur],null,1));a.download='lot_hydromel.json';a.click()}
-if(L.length)cur=0;ref();draw();
+if(L.length)cur=0;else newLot();ref();draw();
 </script></body></html>
