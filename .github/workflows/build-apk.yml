@@ -11,6 +11,7 @@ jobs:
         with: {distribution: temurin, java-version: 17}
       - run: npm install
       - run: npx cap add android && npx cap sync android
+      - run: cp -r icon/res/. android/app/src/main/res/
       - run: cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
