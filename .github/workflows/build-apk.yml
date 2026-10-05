@@ -9,8 +9,42 @@ jobs:
         with: {node-version: 20}
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: 17}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
       - run: npm install
       - run: npx cap add android && npx cap sync android
+      - name: Icone
+        run: |
+          pip install pillow
+          python3 - <<'PY'
+          import base64,io,os
+          from PIL import Image,ImageDraw
+          B64="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"
+          BGC=(250,222,223)
+          art=Image.open(io.BytesIO(base64.b64decode(B64))).convert('RGBA')
+          W,H=art.size
+          RES=os.environ.get('RES','android/app/src/main/res')
+          def layer(size,hf):
+              h=int(size*hf);w=int(h*W/H);a=art.resize((w,h),Image.LANCZOS)
+              im=Image.new('RGBA',(size,size),(0,0,0,0));im.alpha_composite(a,((size-w)//2,(size-h)//2));return im
+          def rounded(img,r):
+              m=Image.new('L',img.size,0);ImageDraw.Draw(m).rounded_rectangle((0,0,img.size[0]-1,img.size[1]-1),r,fill=255)
+              o=Image.new('RGBA',img.size,(0,0,0,0));o.paste(img,(0,0),m);return o
+          def circle(img):
+              m=Image.new('L',img.size,0);ImageDraw.Draw(m).ellipse((0,0,img.size[0]-1,img.size[1]-1),fill=255)
+              o=Image.new('RGBA',img.size,(0,0,0,0));o.paste(img,(0,0),m);return o
+          def full(size,hf):
+              b=Image.new('RGBA',(size,size),BGC+(255,));b.alpha_composite(layer(size,hf));return b
+          for n,f in {'mdpi':1,'hdpi':1.5,'xhdpi':2,'xxhdpi':3,'xxxhdpi':4}.items():
+              d=f'{RES}/mipmap-{n}';os.makedirs(d,exist_ok=True)
+              L=int(48*f);F=int(108*f)
+              lg=full(L*4,0.74).resize((L,L),Image.LANCZOS)
+              rounded(lg,int(L*0.2)).save(f'{d}/ic_launcher.png');circle(lg).save(f'{d}/ic_launcher_round.png')
+              layer(F*4,0.46).resize((F,F),Image.LANCZOS).save(f'{d}/ic_launcher_foreground.png')
+          os.makedirs(f'{RES}/values',exist_ok=True)
+          open(f'{RES}/values/ic_launcher_background.xml','w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FADEDF</color>\n</resources>\n')
+          print('icones ok')
+          PY
       - run: cd android && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
